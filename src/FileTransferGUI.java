@@ -16,14 +16,14 @@ public class FileTransferGUI extends JFrame {
     private static final String DOWNLOADS_DIR = "client_downloads";
     private static final int BUFFER_SIZE = 4096;
 
-    // GUI Bileşenleri
+    
     private JTextArea logArea;
     private JTextField messageEntry;
     private JTextField filePathField;
     private String selectedFilePath = "";
 
     public FileTransferGUI() {
-        // Dosya dizinini oluştur (Eğer yoksa)
+        
         Path dirPath = Paths.get(DOWNLOADS_DIR);
         if (!Files.exists(dirPath)) {
             try {
@@ -33,13 +33,13 @@ public class FileTransferGUI extends JFrame {
             }
         }
         
-        // --- Ana Pencere Ayarları ---
+        
         setTitle("Java Socket Transfer GUI");
         setSize(700, 550);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setLayout(new BorderLayout(10, 10)); // Genel layout yöneticisi
+        setLayout(new BorderLayout(10, 10)); 
 
-        // --- ÜST PANEL: Mesaj Gönderme ---
+        
         JPanel messagePanel = new JPanel(new BorderLayout(5, 5));
         messagePanel.setBorder(BorderFactory.createTitledBorder("Mesaj Gönder"));
         
@@ -50,11 +50,11 @@ public class FileTransferGUI extends JFrame {
         messagePanel.add(messageEntry, BorderLayout.CENTER);
         messagePanel.add(sendMessageButton, BorderLayout.EAST);
         
-        // --- ORTA PANEL: Dosya İşlemleri ---
+        
         JPanel filePanel = new JPanel(new GridLayout(3, 1, 10, 5));
         filePanel.setBorder(BorderFactory.createTitledBorder("Dosya Transferi"));
         
-        // 1. Dosya Seçme Alanı
+        
         JPanel selectPanel = new JPanel(new BorderLayout(5, 5));
         filePathField = new JTextField("Dosya Seçiniz...", 30);
         filePathField.setEditable(false);
@@ -64,7 +64,7 @@ public class FileTransferGUI extends JFrame {
         selectPanel.add(selectFileButton, BorderLayout.EAST);
         filePanel.add(selectPanel);
         
-        // 2. Butonlar
+        
         JPanel transferButtonPanel = new JPanel(new GridLayout(1, 2, 10, 5));
         JButton sendFileButton = new JButton("Sunucuya Dosya Gönder");
         JButton pullFileButton = new JButton("Sunucudan Dosya Çek");
@@ -76,13 +76,13 @@ public class FileTransferGUI extends JFrame {
         transferButtonPanel.add(pullFileButton);
         filePanel.add(transferButtonPanel);
 
-        // --- ANA KONTROL PANELİ ---
+        
         JPanel controlPanel = new JPanel(new GridLayout(2, 1, 10, 10));
         controlPanel.add(messagePanel);
         controlPanel.add(filePanel);
         add(controlPanel, BorderLayout.NORTH);
 
-        // --- ALT PANEL: Log Alanı ---
+        
         logArea = new JTextArea(15, 50);
         logArea.setEditable(false);
         logArea.setLineWrap(true);
@@ -90,27 +90,27 @@ public class FileTransferGUI extends JFrame {
         
         add(logScrollPane, BorderLayout.CENTER);
 
-        // Pencereyi Görünür Yapma
+        
         setVisible(true);
         log("GUI Başlatıldı. Lütfen Server'ın çalıştığından emin olun.");
     }
     
-    // --- UTILITY METOTLARI ---
+   
 
     private void log(String message) {
-        // Swing'de GUI güncelleme işlemleri EDT (Event Dispatch Thread) üzerinde yapılmalı
+        
         SwingUtilities.invokeLater(() -> {
             logArea.append(message + "\n");
-            logArea.setCaretPosition(logArea.getDocument().getLength()); // En alta kaydır
+            logArea.setCaretPosition(logArea.getDocument().getLength()); 
         });
     }
 
     private void executeAction(Runnable action) {
-        // Ağ işlemlerini bloke etmemek için yeni bir Thread'de çalıştırır
+        
         new Thread(action).start();
     }
     
-    // --- BUTON İŞLEYİCİLERİ ---
+    
     
     private void handleSelectFile(ActionEvent e) {
         JFileChooser fileChooser = new JFileChooser();
@@ -135,7 +135,7 @@ public class FileTransferGUI extends JFrame {
         executeAction(this::pullFile);
     }
     
-    // --- SUNUCU İLETİŞİM MANTIĞI ---
+    
 
     private void sendMessage(String message) {
         if (message.isEmpty()) {
@@ -184,11 +184,11 @@ public class FileTransferGUI extends JFrame {
              OutputStream os = socket.getOutputStream();
              FileInputStream fis = new FileInputStream(file)) {
 
-            // 1. Header'ı gönder
+            
             os.write((header + "\n").getBytes());
             os.flush();
 
-            // 2. Dosya içeriğini gönder
+            
             byte[] buffer = new byte[BUFFER_SIZE];
             int bytesRead;
             while ((bytesRead = fis.read(buffer)) != -1) {
@@ -213,10 +213,10 @@ public class FileTransferGUI extends JFrame {
              BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
              InputStream is = socket.getInputStream()) {
 
-            // 1. PULL komutunu gönder
+            
             out.println("PULL");
 
-            // 2. Sunucudan yanıtı ve dosya bilgisini al
+            
             String responseHeader = in.readLine();
             if (responseHeader == null || !responseHeader.startsWith("RECEIVE_OK:")) {
                 log("HATA: Sunucudan geçersiz yanıt alındı: " + responseHeader);
@@ -229,7 +229,7 @@ public class FileTransferGUI extends JFrame {
 
             log("Sunucudan dosya alınıyor: " + fileName + ", Boyut: " + fileSize + " bytes.");
 
-            // 3. Dosya içeriğini kaydet
+            
             Path filePath = Paths.get(DOWNLOADS_DIR, fileName);
             try (FileOutputStream fos = new FileOutputStream(filePath.toFile())) {
                 byte[] buffer = new byte[BUFFER_SIZE];
