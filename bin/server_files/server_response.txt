@@ -1,0 +1,2 @@
+Bu, Java Sunucusundan gelen cevaptır.
+Zaman damgası: Tue Sep 30 21:06:47 TRT 2025
