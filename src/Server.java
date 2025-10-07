@@ -1,146 +1,82 @@
 import java.io.*;
 import java.net.*;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 public class Server {
 
-    private static final int PORT = 9000;
-    private static final String SERVER_FILES_DIR = "server_files";
-    private static final String RESPONSE_FILE_NAME = "server_response.txt";
-    private static final int THREAD_POOL_SIZE = 10;
-
     public static void main(String[] args) {
-        Path dirPath = Paths.get(SERVER_FILES_DIR);
-        if (!Files.exists(dirPath)) {
-            try {
-                Files.createDirectories(dirPath);
-            } catch (IOException e) {
-                System.err.println("HATA: Dosya dizini oluşturulamadı: " + e.getMessage());
-                return;
-            }
-        }
-        createResponseFile();
+        int port = 12345;
+        System.out.println("[SERVER] Başlatılıyor...");
 
-        ExecutorService pool = Executors.newFixedThreadPool(THREAD_POOL_SIZE);
+        try (ServerSocket serverSocket = new ServerSocket(port)) {
+            System.out.println("[SERVER] Port " + port + " dinleniyor...");
 
-        try (ServerSocket serverSocket = new ServerSocket(PORT)) {
-            System.out.println("Sunucu başlatıldı, bağlantı bekleniyor... Port: " + PORT);
-            
             while (true) {
-                Socket clientSocket = serverSocket.accept();
-                pool.execute(new ClientHandler(clientSocket));
+                Socket socket = serverSocket.accept();
+                System.out.println("[SERVER] Bağlantı kabul edildi: " + socket.getInetAddress());
+
+                new Thread(() -> handleClient(socket)).start();
             }
+
         } catch (IOException e) {
-            System.err.println("Sunucu hatası: " + e.getMessage());
-        } finally {
-            pool.shutdown();
+            e.printStackTrace();
         }
     }
 
-    private static void createResponseFile() {
-        Path responsePath = Paths.get(SERVER_FILES_DIR, RESPONSE_FILE_NAME);
-        if (!Files.exists(responsePath)) {
-            try (PrintWriter writer = new PrintWriter(Files.newBufferedWriter(responsePath))) {
-                writer.println("Bu, Java Sunucusundan gelen cevaptır.");
-                writer.println("Zaman damgası: " + new java.util.Date());
-            } catch (IOException e) {
-                System.err.println("Cevap dosyası oluşturulamadı: " + e.getMessage());
-            }
-        }
-    }
+    private static void handleClient(Socket clientSocket) {
+    try (
+        BufferedReader reader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+        BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream()))
+    ) {
+        String message;
 
-    private static class ClientHandler implements Runnable {
-        private final Socket clientSocket;
+        while ((message = reader.readLine()) != null) {
+            System.out.println("[SERVER] Gelen veri: " + message);
 
-        public ClientHandler(Socket socket) {
-            this.clientSocket = socket;
-            System.out.println("\n--- Yeni Client bağlandı: " + socket.getInetAddress() + ":" + socket.getPort() + " ---");
-        }
-
-        @Override
-        public void run() {
-            try (BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-                 OutputStream os = clientSocket.getOutputStream();
-                 InputStream is = clientSocket.getInputStream()) {
-                
-                String header = in.readLine();
-                if (header == null) return;
-
-                System.out.println("Client komutu: " + header);
-
-                if (header.startsWith("SEND:")) {
-                    String[] parts = header.split(":", 3);
-                    String fileName = parts[1];
-                    long fileSize = Long.parseLong(parts[2]);
-                    receiveFile(is, fileName, fileSize);
-
-                } else if (header.equals("PULL")) {
-                    sendFile(os);
-
-                } else if (header.startsWith("MESSAGE:")) {
-                    String messageContent = header.substring("MESSAGE:".length());
-                    System.out.println("Mesaj Alındı: " + messageContent);
-                    os.write("OK: Mesajiniz alindi.\n".getBytes());
-                    os.flush();
-                } else {
-                    System.out.println("Bilinmeyen komut alındı.");
-                }
-
-            } catch (Exception e) {
-                System.err.println("Client ile iletişim hatası: " + e.getMessage());
-            } finally {
-                try {
-                    clientSocket.close();
-                    System.out.println("Client (" + clientSocket.getInetAddress() + ") bağlantısı kapatıldı.");
-                } catch (IOException e) {
-                    System.err.println("Soket kapatma hatası: " + e.getMessage());
-                }
-            }
-        }
-
-        private void receiveFile(InputStream is, String fileName, long fileSize) throws IOException {
-            Path filePath = Paths.get(SERVER_FILES_DIR, fileName);
-            System.out.println("Dosya alınıyor: " + fileName + ", Boyut: " + fileSize + " bytes");
-
-            try (FileOutputStream fos = new FileOutputStream(filePath.toFile())) {
-                byte[] buffer = new byte[4096];
-                int bytesRead;
-                long totalBytesRead = 0;
-
-                while (totalBytesRead < fileSize && (bytesRead = is.read(buffer)) > 0) {
-                    fos.write(buffer, 0, bytesRead);
-                    totalBytesRead += bytesRead;
-                }
-
-                if (totalBytesRead == fileSize) {
-                    System.out.println("Dosya başarıyla kaydedildi: " + filePath);
-                } else {
-                    System.out.println("UYARI: Dosya eksik alındı (" + totalBytesRead + "/" + fileSize + ").");
-                }
-            }
-        }
-
-        private void sendFile(OutputStream os) throws IOException {
-            Path responsePath = Paths.get(SERVER_FILES_DIR, RESPONSE_FILE_NAME);
-            File file = responsePath.toFile();
             
-            String responseHeader = "RECEIVE_OK:" + file.getName() + ":" + file.length() + "\n";
-            os.write(responseHeader.getBytes());
-            os.flush(); 
+            if (message.startsWith("MESSAGE:")) {
+                String encryptedText = message.substring(8); 
+                System.out.println("[SERVER] Şifreli mesaj alındı: " + encryptedText);
 
-            try (FileInputStream fis = new FileInputStream(file)) {
-                byte[] buffer = new byte[4096];
-                int bytesRead;
-                while ((bytesRead = fis.read(buffer)) != -1) {
-                    os.write(buffer, 0, bytesRead);
-                }
-                os.flush();
-                System.out.println("Cevap dosyası başarıyla gönderildi: " + file.getName());
+                
+                writer.write("Sunucu mesajı aldı. Şifreli metin: " + encryptedText);
+                writer.newLine();
+                writer.flush();
+            }
+            
+            else if (message.startsWith("CAESAR:")) {
+                String[] parts = message.split(":", 3);
+                int key = Integer.parseInt(parts[1]);
+                String encryptedText = parts[2];
+                String decrypted = decryptCaesar(encryptedText, key);
+
+                writer.write("Sunucu mesajı aldı. Deşifre sonucu: " + decrypted);
+                writer.newLine();
+                writer.flush();
+            }
+            
+            else {
+                System.out.println("[SERVER] Bilinmeyen format: " + message);
             }
         }
+    } catch (IOException e) {
+        e.printStackTrace();
+    }
+}
+
+    
+    private static String decryptCaesar(String text, int key) {
+        return encryptCaesar(text, 26 - (key % 26)); 
+    }
+
+    private static String encryptCaesar(String text, int key) {
+        StringBuilder result = new StringBuilder();
+        for (char c : text.toCharArray()) {
+            if (Character.isLetter(c)) {
+                char base = Character.isUpperCase(c) ? 'A' : 'a';
+                c = (char) ((c - base + key) % 26 + base);
+            }
+            result.append(c);
+        }
+        return result.toString();
     }
 }
