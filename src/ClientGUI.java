@@ -20,7 +20,6 @@ public class ClientGUI extends JFrame {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout(10, 10));
         
-        
         JPanel topPanel = new JPanel(new GridLayout(3, 2, 10, 10));
         topPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         
@@ -33,11 +32,10 @@ public class ClientGUI extends JFrame {
         topPanel.add(keyField);
         
         topPanel.add(new JLabel("Algoritma Seç:"));
-        cipherBox = new JComboBox<>(new String[]{"Caesar", "Vigenere", "Substitution", "Affine"});
+        cipherBox = new JComboBox<>(new String[]{"Caesar", "Vigenere", "Substitution", "Affine", "Railfence"});
         topPanel.add(cipherBox);
         
         add(topPanel, BorderLayout.NORTH);
-        
         
         logArea = new JTextArea(15, 40);
         logArea.setEditable(false);
@@ -45,7 +43,6 @@ public class ClientGUI extends JFrame {
         JScrollPane scrollPane = new JScrollPane(logArea);
         scrollPane.setBorder(BorderFactory.createTitledBorder("İşlem Geçmişi"));
         add(scrollPane, BorderLayout.CENTER);
-        
         
         JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 10));
         
@@ -85,7 +82,6 @@ public class ClientGUI extends JFrame {
         });
     }
     
-    
     private void handleEncrypt(ActionEvent e) {
         new Thread(() -> {
             String message = messageField.getText().trim();
@@ -93,7 +89,7 @@ public class ClientGUI extends JFrame {
             String method = (String) cipherBox.getSelectedItem();
             
             if (message.isEmpty() || key.isEmpty()) {
-                log("❌ HATA: Mesaj ve anahtar boş olamaz!");
+                log("HATA: Mesaj ve anahtar boş olamaz!");
                 return;
             }
             
@@ -108,12 +104,10 @@ public class ClientGUI extends JFrame {
                 
                 sendToServer(encrypted, key, method);
             } catch (Exception ex) {
-                log("❌ HATA: " + ex.getMessage());
-                ex.printStackTrace();
+                log("HATA: " + ex.getMessage());
             }
         }).start();
     }
-    
     
     private void handleDecrypt(ActionEvent e) {
         new Thread(() -> {
@@ -122,7 +116,7 @@ public class ClientGUI extends JFrame {
             String method = (String) cipherBox.getSelectedItem();
             
             if (encryptedMessage.isEmpty() || key.isEmpty()) {
-                log("❌ HATA: Şifreli mesaj ve anahtar boş olamaz!");
+                log("HATA: Şifreli mesaj ve anahtar boş olamaz!");
                 return;
             }
             
@@ -135,15 +129,12 @@ public class ClientGUI extends JFrame {
                 String decrypted = Encryptor.decrypt(encryptedMessage, key, method);
                 log("✓ Deşifrelenmiş Mesaj: " + decrypted);
                 
-                
                 sendDecryptedToServer(decrypted, key, method);
             } catch (Exception ex) {
-                log("❌ HATA: " + ex.getMessage());
-                ex.printStackTrace();
+                log("HATA: " + ex.getMessage());
             }
         }).start();
     }
-    
     
     private void sendToServer(String encryptedMessage, String key, String method) {
         try (Socket socket = new Socket(HOST, PORT);
@@ -151,7 +142,6 @@ public class ClientGUI extends JFrame {
              BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
             
             log("→ Sunucuya bağlanıldı...");
-            
             
             if (method.equalsIgnoreCase("Caesar")) {
                 out.println("CAESAR:" + key + ":" + encryptedMessage);
@@ -163,12 +153,11 @@ public class ClientGUI extends JFrame {
             log("← Sunucu Yanıtı: " + response);
             
         } catch (ConnectException e) {
-            log("❌ HATA: Sunucuya bağlanılamadı. Server çalışıyor mu?");
+            log("HATA: Sunucuya bağlanılamadı. Server çalışıyor mu?");
         } catch (IOException e) {
-            log("❌ HATA: Mesaj gönderilemedi: " + e.getMessage());
+            log("HATA: Mesaj gönderilemedi: " + e.getMessage());
         }
     }
-    
     
     private void sendDecryptedToServer(String decryptedMessage, String key, String method) {
         try (Socket socket = new Socket(HOST, PORT);
@@ -188,7 +177,15 @@ public class ClientGUI extends JFrame {
         }
     }
     
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(ClientGUI::new);
+    
+public static void main(String[] args) {
+    try {
+        
+        UIManager.setLookAndFeel("javax.swing.plaf.nimbus.NimbusLookAndFeel");
+    } catch (Exception ex) {
+        System.err.println("Tema yüklenirken hata oluştu: " + ex.getMessage());
     }
+    
+    SwingUtilities.invokeLater(ClientGUI::new);
+}
 }
