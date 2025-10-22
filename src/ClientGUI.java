@@ -32,7 +32,7 @@ public class ClientGUI extends JFrame {
         topPanel.add(keyField);
         
         topPanel.add(new JLabel("Algoritma Seç:"));
-        cipherBox = new JComboBox<>(new String[]{"Caesar", "Vigenere", "Substitution", "Affine", "Railfence"});
+        cipherBox = new JComboBox<>(new String[]{"Caesar", "Vigenere", "Substitution", "Affine", "Railfence","Hill"});
         topPanel.add(cipherBox);
         
         add(topPanel, BorderLayout.NORTH);

@@ -12,6 +12,8 @@ public class Encryptor {
                 return affineEncrypt(text, key);
             case "railfence":
                 return railfenceEncrypt(text, key);
+            case "hill": // Hill Cipher Eklendi
+                return hillEncrypt(text, key);
             default:
                 return "Geçersiz algoritma seçimi!";
         }
@@ -29,6 +31,8 @@ public class Encryptor {
                 return affineDecrypt(text, key);
             case "railfence":
                 return railfenceDecrypt(text, key);
+            case "hill": // Hill Cipher Eklendi
+                return hillDecrypt(text, key);
             default:
                 return "Geçersiz algoritma seçimi!";
         }
@@ -240,6 +244,75 @@ public class Encryptor {
             if (row == 0 || row == rails - 1) dirDown = !dirDown;
             result.append(rail[row][col++]);
             if (dirDown) row++; else row--;
+        }
+        return result.toString();
+    }
+
+   
+
+    private static int[][] getMatrixKey(String key) {
+        String[] parts = key.split(",");
+        if (parts.length != 4) {
+            throw new IllegalArgumentException("Hill Cipher anahtarı 4 tam sayıdan oluşmalıdır.");
+        }
+        int[][] keyMatrix = new int[2][2];
+        for (int i = 0; i < 4; i++) {
+            keyMatrix[i / 2][i % 2] = Integer.parseInt(parts[i].trim()) % 26;
+        }
+        return keyMatrix;
+    }
+
+    private static String hillEncrypt(String text, String key) {
+        text = text.replaceAll("[^a-zA-Z]", "").toUpperCase();
+        if (text.length() % 2 != 0) {
+            text += 'X';
+        }
+
+        int[][] keyMatrix = getMatrixKey(key);
+        StringBuilder result = new StringBuilder();
+
+        for (int i = 0; i < text.length(); i += 2) {
+            int p1 = text.charAt(i) - 'A';
+            int p2 = text.charAt(i + 1) - 'A';
+
+            int c1 = (keyMatrix[0][0] * p1 + keyMatrix[0][1] * p2) % 26;
+            int c2 = (keyMatrix[1][0] * p1 + keyMatrix[1][1] * p2) % 26;
+
+            result.append((char) (c1 + 'A'));
+            result.append((char) (c2 + 'A'));
+        }
+        return result.toString();
+    }
+
+    private static String hillDecrypt(String text, String key) {
+        text = text.replaceAll("[^a-zA-Z]", "").toUpperCase();
+        int[][] keyMatrix = getMatrixKey(key);
+
+        int determinant = (keyMatrix[0][0] * keyMatrix[1][1] - keyMatrix[0][1] * keyMatrix[1][0]);
+        determinant = (determinant % 26 + 26) % 26;
+        
+        int detInv = modInverse(determinant, 26); 
+        if (detInv == 0) {
+            throw new IllegalArgumentException("Hill Cipher: Anahtar (matris) tersinir değil! Başka bir anahtar deneyin.");
+        }
+        
+        int[][] invKeyMatrix = new int[2][2];
+        invKeyMatrix[0][0] = (keyMatrix[1][1] * detInv) % 26;
+        invKeyMatrix[0][1] = ((-keyMatrix[0][1] * detInv) % 26 + 26) % 26;
+        invKeyMatrix[1][0] = ((-keyMatrix[1][0] * detInv) % 26 + 26) % 26;
+        invKeyMatrix[1][1] = (keyMatrix[0][0] * detInv) % 26;
+
+        StringBuilder result = new StringBuilder();
+
+        for (int i = 0; i < text.length(); i += 2) {
+            int c1 = text.charAt(i) - 'A';
+            int c2 = text.charAt(i + 1) - 'A';
+
+            int p1 = (invKeyMatrix[0][0] * c1 + invKeyMatrix[0][1] * c2) % 26;
+            int p2 = (invKeyMatrix[1][0] * c1 + invKeyMatrix[1][1] * c2) % 26;
+
+            result.append((char) (p1 + 'A'));
+            result.append((char) (p2 + 'A'));
         }
         return result.toString();
     }
