@@ -261,6 +261,7 @@ public class Encryptor {
         }
         return keyMatrix;
     }
+    
 
     private static String hillEncrypt(String text, String key) {
         text = text.replaceAll("[^a-zA-Z]", "").toUpperCase();
