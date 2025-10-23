@@ -12,7 +12,7 @@ public class Encryptor {
                 return affineEncrypt(text, key);
             case "railfence":
                 return railfenceEncrypt(text, key);
-            case "hill": // Hill Cipher Eklendi
+            case "hill": 
                 return hillEncrypt(text, key);
             default:
                 return "Geçersiz algoritma seçimi!";
