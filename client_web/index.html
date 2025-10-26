@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Şifreleme Uygulaması (Client/Server)</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="container">
+    
+    <header class="tab-header">
+        <button class="tab-button active" data-tab="client">İstemci (Şifreleme)</button>
+        <button class="tab-button" data-tab="server">Sunucu (Deşifreleme)</button>
+    </header>
+
+    <div id="client" class="tab-content active">
+        <h1>İstemci - Mesaj Şifreleme</h1>
+
+        <div class="form-section">
+            <label for="client-message">Mesaj:</label>
+            <input type="text" id="client-message" placeholder="Şifrelenecek mesajınızı buraya yazın..." />
+
+            <label for="client-key">Anahtar:</label>
+            <input type="text" id="client-key" placeholder="Anahtarınızı girin (Örn: 3 veya 5,8,17,3)" />
+
+            <label for="client-algorithm">Algoritma Seç:</label>
+            <select id="client-algorithm">
+                <option value="caesar">Caesar</option>
+                <option value="vigenere">Vigenere</option>
+                <option value="substitution">Substitution</option>
+                <option value="affine">Affine</option>
+                <option value="railfence">Railfence</option>
+                <option value="hill">Hill</option>
+            </select>
+        </div>
+
+        <div class="button-group">
+            <button id="encryptBtn" class="btn btn-primary">Şifrele ve Gönder</button>
+            <button id="clientDecryptBtn" class="btn btn-secondary">Deşifrele (Lokal)</button>
+        </div>
+    </div>
+
+    <div id="server" class="tab-content">
+        <h1>Sunucu - Mesaj Deşifreleme</h1>
+
+        <div class="form-section">
+            <label for="server-message">Şifreli Mesaj:</label>
+            <textarea id="server-encrypted" rows="3" placeholder="İstemciden gelen şifreli metin"></textarea>
+
+            <label for="server-key">Anahtar:</label>
+            <input type="text" id="server-key" placeholder="Anahtar" />
+
+            <label for="server-algorithm">Algoritma Seç:</label>
+            <select id="server-algorithm">
+                <option value="caesar">Caesar</option>
+                <option value="vigenere">Vigenere</option>
+                <option value="substitution">Substitution</option>
+                <option value="affine">Affine</option>
+                <option value="railfence">Railfence</option>
+                <option value="hill">Hill</option>
+            </select>
+        </div>
+
+        <div class="button-group">
+            <button id="serverDecryptBtn" class="btn btn-success">Deşifrele (Sunucu İşlemi)</button>
+            <button id="clearServerBtn" class="btn btn-danger">Temizle</button>
+        </div>
+    </div>
+
+    <div class="log-section">
+        <h3>İşlem Geçmişi / Log</h3>
+        <pre id="log"></pre>
+    </div>
+
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
