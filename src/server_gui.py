@@ -5,8 +5,8 @@ import threading
 from concurrent.futures import ThreadPoolExecutor
 import encryptor as enc
 
-HOST = '127.0.0.1'
-PORT = 12345
+HOST = '0.0.0.0'
+PORT = 50000
 MAX_WORKERS = 10
 
 class ServerGUI(tk.Tk):
@@ -19,7 +19,7 @@ class ServerGUI(tk.Tk):
         self.server_socket = None
         self.thread_pool = ThreadPoolExecutor(max_workers=MAX_WORKERS)
         
-        self.algorithms = ["Caesar", "Vigenere", "Substitution", "Affine", "Railfence", "Hill"]
+        self.algorithms = ["Caesar", "Vigenere", "Substitution", "Affine", "Railfence", "Hill","Playfair", "Columnar", "Route", "Pigpen", "Polybius"]
 
         self._create_widgets()
         self.log("GUI Başlatıldı. Port: " + str(PORT))

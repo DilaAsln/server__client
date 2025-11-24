@@ -16,6 +16,9 @@ encryptBtn.addEventListener("click", handleClientEncrypt);
 clientDecryptBtn.addEventListener("click", handleClientLocalDecrypt);
 serverDecryptBtn.addEventListener("click", handleServerDecrypt);
 clearServerBtn.addEventListener("click", clearServerFields);
+clientAlgorithmSelect.addEventListener("change", updateKeyPlaceholder);
+serverAlgorithmSelect.addEventListener("change", updateKeyPlaceholder);
+document.addEventListener('DOMContentLoaded', updateKeyPlaceholder);
 
 document.addEventListener('DOMContentLoaded', function() {
     const tabs = document.querySelectorAll('.tab-button');
@@ -34,7 +37,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     document.querySelector('.tab-button[data-tab="client"]').click();
 });
-
 
 function log(msg) {
   const now = new Date().toLocaleTimeString();
@@ -63,6 +65,53 @@ function getMatrixKey(keyString) {
         [parts[0] % 26, parts[1] % 26],
         [parts[2] % 26, parts[3] % 26]
     ];
+}
+
+function updateKeyPlaceholder() {
+    const algorithm = clientAlgorithmSelect.value;
+    let placeholderText = "";
+
+    switch (algorithm) {
+        case 'caesar':
+            placeholderText = "Sayı girin (Örn: 3)";
+            break;
+        case 'vigenere':
+            placeholderText = "Kelime girin (Örn: SECRETKEY)";
+            break;
+        case 'substitution':
+            placeholderText = "26 harfli tam alfabe (Örn: ZEBRASCDFGHIJKLMNOPQTUVWXY)";
+            break;
+        case 'affine':
+            placeholderText = "İki sayı (Örn: 5, 8)";
+            break;
+        case 'railfence':
+            placeholderText = "Ray sayısı girin (Örn: 3)";
+            break;
+        case 'hill':
+            placeholderText = "Virgülle ayrılmış 4 sayı (Örn: 5, 8, 17, 3)";
+            break;
+        case 'columnar':
+            placeholderText = "Anahtar kelime (Örn: CIPHER)";
+            break;
+        case 'playfair':
+            placeholderText = "Anahtar kelime (Örn: PLAYFAIR)";
+            break;
+        case 'route':
+            placeholderText = "Sütun sayısı (Örn: 4)";
+            break;
+        case 'pigpen':
+            placeholderText = "Bu algoritma anahtar gerektirmez";
+            break;
+        case 'polybius':
+            placeholderText = "Tablo boyutu (Örn: 55 veya 66)";
+            break;
+        default:
+            placeholderText = "Anahtarınızı girin...";
+            break;
+    }
+    
+    clientKeyInput.placeholder = placeholderText;
+    serverKeyInput.placeholder = placeholderText; 
 }
 
 function caesarEncrypt(text, key) {
@@ -306,6 +355,290 @@ function hillDecrypt(text, keyString) {
     return result;
 }
 
+
+function columnarEncrypt(text, key) {
+    const keyStr = key.toUpperCase().replace(' ', '');
+    let normalizedText = normalizeText(text);
+    const keyOrder = [...keyStr].map((_, i) => i).sort((a, b) => keyStr[a].localeCompare(keyStr[b]));
+    
+    const numCols = keyStr.length;
+    const numRows = Math.ceil(normalizedText.length / numCols);
+    
+    const cipherMatrix = Array(numCols).fill('');
+    
+    for (let i = 0; i < normalizedText.length; i++) {
+        const col = i % numCols;
+        cipherMatrix[col] += normalizedText[i];
+    }
+        
+    let result = '';
+    for (const index of keyOrder) {
+        result += cipherMatrix[index];
+    }
+        
+    return result;
+}
+
+function columnarDecrypt(text, key) {
+    const keyStr = key.toUpperCase().replace(' ', '');
+    let normalizedText = normalizeText(text);
+    const keyOrder = [...keyStr].map((_, i) => i).sort((a, b) => keyStr[a].localeCompare(keyStr[b]));
+    
+    const numCols = keyStr.length;
+    const lenText = normalizedText.length;
+    const numRows = Math.ceil(lenText / numCols);
+    
+    let colLengths = Array(numCols).fill(numRows);
+    const lenFullCols = lenText % numCols;
+    
+    if (lenFullCols !== 0) {
+        for (let i = 0; i < numCols; i++) {
+            if (i >= lenFullCols) {
+                colLengths[keyOrder[i]] -= 1;
+            }
+        }
+    }
+
+    const cipherMatrix = Array(numCols).fill('');
+    let currentIndex = 0;
+    
+    for (let i = 0; i < numCols; i++) {
+        const colIndex = keyOrder[i];
+        const length = colLengths[colIndex];
+        cipherMatrix[colIndex] = normalizedText.substring(currentIndex, currentIndex + length);
+        currentIndex += length;
+    }
+        
+    let result = '';
+    for (let r = 0; r < numRows; r++) {
+        for (let c = 0; c < numCols; c++) {
+            if (r < cipherMatrix[c].length) {
+                result += cipherMatrix[c][r];
+            }
+        }
+    }
+    return result;
+}
+
+function routeEncrypt(text, key) {
+    const numCols = parseInt(key);
+    if (numCols <= 1 || isNaN(numCols)) throw new Error("Route Cipher anahtarı 1'den büyük bir sayı olmalıdır.");
+        
+    let normalizedText = normalizeText(text);
+    const numRows = Math.ceil(normalizedText.length / numCols);
+    
+    const matrix = Array(numRows).fill(null).map(() => Array(numCols).fill('X'));
+    let textIndex = 0;
+    
+    for (let r = 0; r < numRows; r++) {
+        for (let c = 0; c < numCols; c++) {
+            if (textIndex < normalizedText.length) {
+                matrix[r][c] = normalizedText[textIndex];
+                textIndex++;
+            }
+        }
+    }
+        
+    let result = '';
+    for (let c = 0; c < numCols; c++) {
+        if (c % 2 === 0) {
+            for (let r = 0; r < numRows; r++) {
+                result += matrix[r][c];
+            }
+        } else {
+            for (let r = numRows - 1; r >= 0; r--) {
+                result += matrix[r][c];
+            }
+        }
+    }
+    return result;
+}
+
+function routeDecrypt(text, key) {
+    const numCols = parseInt(key);
+    if (numCols <= 1 || isNaN(numCols)) throw new Error("Route Cipher anahtarı 1'den büyük bir sayı olmalıdır.");
+
+    let normalizedText = normalizeText(text);
+    const numRows = Math.ceil(normalizedText.length / numCols);
+    const lenText = normalizedText.length;
+    
+    const matrix = Array(numRows).fill(null).map(() => Array(numCols).fill('\n'));
+    let textIndex = 0;
+    
+    for (let c = 0; c < numCols; c++) {
+        if (c % 2 === 0) {
+            for (let r = 0; r < numRows; r++) {
+                if (textIndex < lenText) {
+                    matrix[r][c] = normalizedText[textIndex];
+                    textIndex++;
+                }
+            }
+        } else {
+            for (let r = numRows - 1; r >= 0; r--) {
+                if (textIndex < lenText) {
+                    matrix[r][c] = normalizedText[textIndex];
+                    textIndex++;
+                }
+            }
+        }
+    }
+        
+    let result = '';
+    for (let r = 0; r < numRows; r++) {
+        for (let c = 0; c < numCols; c++) {
+            if (matrix[r][c] !== '\n' && matrix[r][c] !== 'X') {
+                result += matrix[r][c];
+            }
+        }
+    }
+    return result;
+}
+
+const PIGPEN_MAP = {
+    'A': '11', 'B': '12', 'C': '13', 'D': '21', 'E': '22', 'F': '23', 'G': '31', 'H': '32', 'I': '33', 
+    'J': '41', 'K': '42', 'L': '43', 'M': '51', 'N': '52', 'O': '53', 'P': '61', 'Q': '62', 'R': '63',
+    'S': '71', 'T': '72', 'U': '73', 'V': '81', 'W': '82', 'X': '83', 'Y': '91', 'Z': '92'
+};
+
+
+const PIGPEN_INV_MAP = {
+    '11': '□', '12': '□̇', '13': '□̈', 
+    '21': '⊓', '22': '⊓̇', '23': '⊓̈', 
+    '31': '⊢', '32': '⊢̇', '33': '⊢̈',
+    '41': 'X', '42': 'Ẋ', '43': 'Ẍ', 
+    '51': '◊', '52': '◊̇', '53': '◊̈',
+    '61': '⊞', '62': '⊞̇', '63': '⊞̈', 
+    '71': '⊏', '72': '⊐', '73': '△',
+    '81': '∇', '82': '◯', '91': '◫', '92': '◫̇' 
+};
+
+const PIGPEN_HARF_MAP = {
+    '11': 'A', '12': 'B', '13': 'C', '21': 'D', '22': 'E', '23': 'F', '31': 'G', '32': 'H', '33': 'I', 
+    '41': 'J', '42': 'K', '43': 'L', '51': 'M', '52': 'N', '53': 'O', '61': 'P', '62': 'Q', '63': 'R',
+    '71': 'S', '72': 'T', '73': 'U', '81': 'V', '82': 'W', '83': 'X', '91': 'Y', '92': 'Z'
+};
+
+function getPigpenShape(encryptedCode) {
+    let shapes = [];
+    const PIGPEN_INV_SHAPE_MAP = {'11': '□', '12': '□̇', '13': '□̈', '21': '⊓', '22': '⊓̇', '23': '⊓̈', '31': '⊢', '32': '⊢̇', '33': '⊢̈', '41': 'X', '42': 'Ẋ', '43': 'Ẍ', '51': '◊', '52': '◊̇', '53': '◊̈', '61': '⊞', '62': '⊞̇', '63': '⊞̈', '71': '⊏', '72': '⊐', '73': '△', '81': '∇', '82': '◯', '91': '◫', '92': '◫̇'};
+
+    for (let i = 0; i < encryptedCode.length; i += 2) {
+        const pair = encryptedCode.substring(i, i + 2);
+        shapes.push(PIGPEN_INV_SHAPE_MAP[pair] || '?');
+    }
+    return shapes.join(' ');
+}
+
+
+function pigpenEncrypt(text, key = '') {
+    let normalizedText = normalizeText(text);
+    let result = '';
+    for (const char of normalizedText) {
+        result += PIGPEN_MAP[char] || char; 
+    }
+    return result;
+}
+
+function pigpenDecrypt(text, key = '') {
+    let result = '';
+    let i = 0;
+    while (i < text.length) {
+        const pair = text.substring(i, i + 2);
+        result += PIGPEN_HARF_MAP[pair] || '?'; 
+        i += 2;
+    }
+    return result;
+}
+
+function playfairEncrypt(text, key) {
+    const keyStr = key.toUpperCase().replace(/[^A-Z]/g, '').replace('J', 'I');
+    let matrix = [];
+    const alphabet = "ABCDEFGHIKLMNOPQRSTUVWXYZ";
+    
+    for (const char of keyStr) {
+        if (!matrix.includes(char)) matrix.push(char);
+    }
+    for (const char of alphabet) {
+        if (!matrix.includes(char)) matrix.push(char);
+    }
+    
+    const matrix5x5 = Array(5).fill(null).map(() => matrix.splice(0, 5));
+
+    let normalizedText = normalizeText(text).replace('J', 'I');
+    
+    let i = 0;
+    while (i < normalizedText.length) {
+        if (i + 1 === normalizedText.length || normalizedText[i] === normalizedText[i+1]) {
+            normalizedText = normalizedText.slice(0, i + 1) + 'X' + normalizedText.slice(i + 1);
+        }
+        i += 2;
+    }
+    
+    const getCoords = (char) => {
+        for (let r = 0; r < 5; r++) {
+            for (let c = 0; c < 5; c++) {
+                if (matrix5x5[r][c] === char) return [r, c];
+            }
+        }
+        return [-1, -1];
+    };
+
+    let result = '';
+    for (let j = 0; j < normalizedText.length; j += 2) {
+        const [r1, c1] = getCoords(normalizedText[j]);
+        const [r2, c2] = getCoords(normalizedText[j+1]);
+
+        if (r1 === r2) {
+            result += matrix5x5[r1][(c1 + 1) % 5] + matrix5x5[r2][(c2 + 1) % 5];
+        } else if (c1 === c2) {
+            result += matrix5x5[(r1 + 1) % 5][c1] + matrix5x5[(r2 + 1) % 5][c2];
+        } else {
+            result += matrix5x5[r1][c2] + matrix5x5[r2][c1];
+        }
+    }
+    return result;
+}
+
+function playfairDecrypt(text, key) {
+    const keyStr = key.toUpperCase().replace(/[^A-Z]/g, '').replace('J', 'I');
+    let matrix = [];
+    const alphabet = "ABCDEFGHIKLMNOPQRSTUVWXYZ";
+    
+    for (const char of keyStr) {
+        if (!matrix.includes(char)) matrix.push(char);
+    }
+    for (const char of alphabet) {
+        if (!matrix.includes(char)) matrix.push(char);
+    }
+    
+    const matrix5x5 = Array(5).fill(null).map(() => matrix.splice(0, 5));
+    let normalizedText = normalizeText(text).replace('J', 'I');
+    
+    const getCoords = (char) => {
+        for (let r = 0; r < 5; r++) {
+            for (let c = 0; c < 5; c++) {
+                if (matrix5x5[r][c] === char) return [r, c];
+            }
+        }
+        return [-1, -1];
+    };
+
+    let result = '';
+    for (let j = 0; j < normalizedText.length; j += 2) {
+        const [r1, c1] = getCoords(normalizedText[j]);
+        const [r2, c2] = getCoords(normalizedText[j+1]);
+
+        if (r1 === r2) {
+            result += matrix5x5[r1][(c1 - 1 + 5) % 5] + matrix5x5[r2][(c2 - 1 + 5) % 5];
+        } else if (c1 === c2) {
+            result += matrix5x5[(r1 - 1 + 5) % 5][c1] + matrix5x5[(r2 - 1 + 5) % 5][c2];
+        } else {
+            result += matrix5x5[r1][c2] + matrix5x5[r2][c1];
+        }
+    }
+    return result;
+}
+
 function encrypt(text, key, algorithm) {
     const alg = algorithm.toLowerCase();
     switch (alg) {
@@ -321,6 +654,16 @@ function encrypt(text, key, algorithm) {
             return railfenceEncrypt(text, key);
         case 'hill':
             return hillEncrypt(text, key);
+        case 'playfair':
+            return playfairEncrypt(text, key);
+        case 'columnar':
+            return columnarEncrypt(text, key);
+        case 'route':
+            return routeEncrypt(text, key);
+        case 'pigpen':
+            return pigpenEncrypt(text, key);
+        case 'polybius':
+            return polybiusEncrypt(text, key);
         default:
             throw new Error("Geçersiz algoritma seçimi!");
     }
@@ -341,6 +684,16 @@ function decrypt(text, key, algorithm) {
             return railfenceDecrypt(text, key);
         case 'hill':
             return hillDecrypt(text, key);
+        case 'playfair':
+            return playfairDecrypt(text, key);
+        case 'columnar':
+            return columnarDecrypt(text, key);
+        case 'route':
+            return routeDecrypt(text, key);
+        case 'pigpen':
+            return pigpenDecrypt(text, key);
+        case 'polybius':
+            return polybiusDecrypt(text, key);
         default:
             throw new Error("Geçersiz algoritma seçimi!");
     }
@@ -351,7 +704,7 @@ function handleClientEncrypt() {
   const key = clientKeyInput.value.trim();
   const algorithm = clientAlgorithmSelect.value;
 
-  if (!message || !key) {
+  if (!message || (algorithm !== 'pigpen' && !key)) {
     log("HATA: Mesaj ve anahtar boş olamaz!");
     return;
   }
@@ -363,14 +716,19 @@ function handleClientEncrypt() {
     if (encrypted) {
       log(`Algoritma: ${algorithm}`);
       log(`Mesaj: ${message}`);
-      log(`Anahtar: ${key}`);
+      log(`Anahtar: ${key || 'Yok'}`); 
       log(`✓ Şifrelenmiş Mesaj: ${encrypted}`);
+
+      if (algorithm === 'pigpen') {
+                const shapes = getPigpenShape(encrypted);
+                log(`✓ GÖRSEL Temsil: ${shapes}`);
+            }
 
       transferToServer(encrypted, key, algorithm);
     }
 
   } catch (e) {
-    log(`Şifreleme Hatası: ${e.message}`);
+    log(`HATA: Şifreleme Hatası: ${e.message}`);
   }
 }
 
@@ -379,7 +737,7 @@ function handleClientLocalDecrypt() {
   const key = clientKeyInput.value.trim();
   const algorithm = clientAlgorithmSelect.value;
 
-  if (!encrypted || !key) {
+  if (!encrypted || (algorithm !== 'pigpen' && !key)) {
     log("HATA: Şifreli mesaj ve anahtar boş olamaz!");
     return;
   }
@@ -391,7 +749,7 @@ function handleClientLocalDecrypt() {
     log(`✓ Deşifrelenmiş Mesaj: ${decrypted}`);
 
   } catch (e) {
-    log(`Deşifreleme Hatası: ${e.message}`);
+    log(`HATA: Deşifreleme Hatası: ${e.message}`);
   }
 }
 
@@ -400,7 +758,8 @@ function handleServerDecrypt() {
   const key = serverKeyInput.value.trim();
   const algorithm = serverAlgorithmSelect.value;
 
-  if (!encrypted || !key) {
+ 
+  if (!encrypted || (algorithm !== 'pigpen' && !key)) {
     log("HATA: Sunucuya Deşifre için veri eksik!");
     return;
   }
@@ -413,7 +772,7 @@ function handleServerDecrypt() {
     log(`← SERVER: Client'a Deşifre Sonucu Gönderildi. (Simülasyon)`);
 
   } catch (e) {
-    log(`Sunucu Deşifre Hatası: ${e.message}`);
+    log(`HATA: Sunucu Deşifre Hatası: ${e.message}`);
   }
 }
 

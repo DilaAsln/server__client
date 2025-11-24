@@ -4,8 +4,8 @@ import socket
 import threading
 import encryptor as enc
 
-HOST = '127.0.0.1'
-PORT = 12345
+HOST = '192.168.1.100'
+PORT = 50000
 
 class ClientGUI(tk.Tk):
     def __init__(self):
@@ -13,7 +13,7 @@ class ClientGUI(tk.Tk):
         self.title("Şifreleme Client GUI")
         self.geometry("700x500")
         
-        self.algorithms = ["Caesar", "Vigenere", "Substitution", "Affine", "Railfence", "Hill"]
+        self.algorithms = ["Caesar", "Vigenere", "Substitution", "Affine", "Railfence", "Hill","Playfair", "Columnar", "Route", "Pigpen", "Polybius"]
 
         self._create_widgets()
         self.log("=== GUI Başlatıldı ===")
@@ -45,7 +45,7 @@ class ClientGUI(tk.Tk):
         button_frame.pack(fill='x', pady=10)
 
         ttk.Button(button_frame, text="Şifrele ve Gönder", command=self.handle_encrypt).pack(side='left', padx=5, fill='x', expand=True)
-        ttk.Button(button_frame, text="Deşifrele (Lokal)", command=self.handle_decrypt).pack(side='left', padx=5, fill='x', expand=True)
+        ttk.Button(button_frame, text="Deşifrele", command=self.handle_decrypt).pack(side='left', padx=5, fill='x', expand=True)
         ttk.Button(button_frame, text="Temizle", command=self.clear_fields).pack(side='left', padx=5, fill='x', expand=True)
 
         ttk.Label(main_frame, text="İşlem Geçmişi:", font=("Arial", 12)).pack(anchor='w', pady=(5, 0))

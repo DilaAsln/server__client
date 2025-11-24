@@ -241,6 +241,277 @@ def hill_decrypt(text, key):
     return result
 
 
+
+def create_playfair_matrix(key):
+    key = key.upper().replace('J', 'I')
+    key = "".join(dict.fromkeys(key))
+    alphabet = "ABCDEFGHIKLMNOPQRSTUVWXYZ"
+    
+    matrix = []
+    
+    for char in key:
+        if char not in matrix:
+            matrix.append(char)
+            
+    for char in alphabet:
+        if char not in matrix:
+            matrix.append(char)
+            
+    matrix_5x5 = [matrix[i:i+5] for i in range(0, 25, 5)]
+    return matrix_5x5
+
+def get_playfair_coords(matrix, char):
+    char = char.upper()
+    for r in range(5):
+        for c in range(5):
+            if matrix[r][c] == char:
+                return r, c
+    return -1, -1
+
+def playfair_encrypt(text, key):
+    matrix = create_playfair_matrix(key)
+    text = text.upper().replace('J', 'I').replace(' ', '')
+    
+    
+    i = 0
+    while i < len(text):
+        if i + 1 == len(text) or text[i] == text[i+1]:
+            text = text[:i+1] + 'X' + text[i+1:]
+        i += 2
+        
+    result = ""
+    for i in range(0, len(text), 2):
+        c1, c2 = text[i], text[i+1]
+        r1, col1 = get_playfair_coords(matrix, c1)
+        r2, col2 = get_playfair_coords(matrix, c2)
+        
+        if r1 == r2: 
+            result += matrix[r1][(col1 + 1) % 5] + matrix[r2][(col2 + 1) % 5]
+        elif col1 == col2: 
+            result += matrix[(r1 + 1) % 5][col1] + matrix[(r2 + 1) % 5][col2]
+        else: 
+            result += matrix[r1][col2] + matrix[r2][col1]
+            
+    return result
+
+def playfair_decrypt(text, key):
+    matrix = create_playfair_matrix(key)
+    text = text.upper().replace('J', 'I').replace(' ', '')
+    result = ""
+    
+    for i in range(0, len(text), 2):
+        c1, c2 = text[i], text[i+1]
+        r1, col1 = get_playfair_coords(matrix, c1)
+        r2, col2 = get_playfair_coords(matrix, c2)
+        
+        if r1 == r2: 
+            result += matrix[r1][(col1 - 1 + 5) % 5] + matrix[r2][(col2 - 1 + 5) % 5]
+        elif col1 == col2: 
+            result += matrix[(r1 - 1 + 5) % 5][col1] + matrix[(r2 - 1 + 5) % 5][col2]
+        else: 
+            result += matrix[r1][col2] + matrix[r2][col1]
+            
+    return result
+
+def columnar_encrypt(text, key):
+    key = key.upper().replace(' ', '')
+    text = "".join(filter(str.isalpha, text)).upper()
+    key_order = sorted(range(len(key)), key=lambda k: key[k])
+    
+    num_cols = len(key)
+    num_rows = math.ceil(len(text) / num_cols)
+    
+    cipher_matrix = [''] * num_cols
+    
+    for i, char in enumerate(text):
+        col = i % num_cols
+        cipher_matrix[col] += char
+        
+    result = ""
+    for index in key_order:
+        result += cipher_matrix[index]
+        
+    return result
+
+def columnar_decrypt(text, key):
+    key = key.upper().replace(' ', '')
+    text = "".join(filter(str.isalpha, text)).upper()
+    key_order = sorted(range(len(key)), key=lambda k: key[k])
+    
+    num_cols = len(key)
+    len_text = len(text)
+    num_rows = math.ceil(len_text / num_cols)
+    
+    col_lengths = [num_rows] * num_cols
+    len_full_cols = len_text % num_cols
+    
+    if len_full_cols != 0:
+        for i in range(num_cols):
+            if i >= len_full_cols:
+                col_lengths[key_order[i]] -= 1
+
+    cipher_parts = [None] * num_cols
+    current_index = 0
+    
+    for i, col_index in enumerate(key_order):
+        length = col_lengths[col_index]
+        cipher_parts[col_index] = text[current_index:current_index + length]
+        current_index += length
+        
+    result = ""
+    for r in range(num_rows):
+        for c in range(num_cols):
+            if r < len(cipher_parts[c]):
+                result += cipher_parts[c][r]
+                
+    return result
+
+
+def route_encrypt(text, key):
+    key = int(key)
+    if key <= 1:
+        raise ValueError("Route Cipher anahtarı 1'den büyük olmalıdır.")
+        
+    text = "".join(filter(str.isalpha, text)).upper()
+    num_cols = key
+    num_rows = math.ceil(len(text) / num_cols)
+    
+    matrix = [['X'] * num_cols for _ in range(num_rows)]
+    text_index = 0
+    
+    for r in range(num_rows):
+        for c in range(num_cols):
+            if text_index < len(text):
+                matrix[r][c] = text[text_index]
+                text_index += 1
+                
+    result = ""
+    
+    for c in range(num_cols):
+        if c % 2 == 0:  
+            for r in range(num_rows):
+                result += matrix[r][c]
+        else:  
+            for r in range(num_rows - 1, -1, -1):
+                result += matrix[r][c]
+    return result
+
+def route_decrypt(text, key):
+    key = int(key)
+    if key <= 1:
+        raise ValueError("Route Cipher anahtarı 1'den büyük olmalıdır.")
+
+    num_cols = key
+    num_rows = math.ceil(len(text) / num_cols)
+    
+    matrix = [['\n'] * num_cols for _ in range(num_rows)]
+    text_index = 0
+    
+    
+    for c in range(num_cols):
+        if c % 2 == 0: 
+            for r in range(num_rows):
+                if text_index < len(text):
+                    matrix[r][c] = text[text_index]
+                    text_index += 1
+        else: 
+            for r in range(num_rows - 1, -1, -1):
+                if text_index < len(text):
+                    matrix[r][c] = text[text_index]
+                    text_index += 1
+                    
+    result = ""
+    for r in range(num_rows):
+        for c in range(num_cols):
+            if matrix[r][c] != '\n' and matrix[r][c] != 'X': 
+                result += matrix[r][c]
+                
+    return result
+
+def polybius_encrypt(text, key='25'):
+    key = key.upper() 
+    if key not in ['55', '66', '88']:
+        key = '55' 
+        
+    text = "".join(filter(str.isalpha, text)).upper().replace('J', 'I')
+
+    if key == '55':
+        table = "ABCDEFGHIKLMNOPQRSTUVWXYZ"
+        size = 5
+    elif key == '66':
+        table = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+        size = 6
+    else: 
+        raise ValueError("Polybius key yalnızca 5x5 (25), 6x6 (36) destekler.")
+
+    result = ""
+    for char in text:
+        if char in table:
+            index = table.find(char)
+            row = (index // size) + 1
+            col = (index % size) + 1
+            result += str(row) + str(col)
+        
+    return result
+
+def polybius_decrypt(text, key='25'):
+    key = key.upper() 
+    if key not in ['55', '66', '88']:
+        key = '55'
+        
+    if key == '55':
+        table = "ABCDEFGHIKLMNOPQRSTUVWXYZ"
+        size = 5
+    elif key == '66':
+        table = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+        size = 6
+    else:
+        raise ValueError("Polybius key yalnızca 5x5 (25), 6x6 (36) destekler.")
+
+    result = ""
+    if len(text) % 2 != 0:
+        raise ValueError("Polybius şifreli metin çift uzunlukta olmalıdır.")
+
+    for i in range(0, len(text), 2):
+        row = int(text[i])
+        col = int(text[i+1])
+        
+        
+        index = (row - 1) * size + (col - 1)
+        
+        if 0 <= index < len(table):
+            result += table[index]
+        else:
+            result += '?'
+            
+    return result
+
+
+
+PIGPEN_MAP = {
+    'A': '11', 'B': '12', 'C': '13', 'D': '21', 'E': '22', 'F': '23', 'G': '31', 'H': '32', 'I': '33', 
+    'J': '41', 'K': '42', 'L': '43', 'M': '51', 'N': '52', 'O': '53', 'P': '61', 'Q': '62', 'R': '63',
+    'S': '71', 'T': '72', 'U': '73', 'V': '81', 'W': '82', 'X': '83', 'Y': '91', 'Z': '92'
+}
+PIGPEN_INV_MAP = {v: k for k, v in PIGPEN_MAP.items()}
+
+def pigpen_encrypt(text, key=''):
+    text = "".join(filter(str.isalpha, text)).upper()
+    result = ""
+    for char in text:
+        result += PIGPEN_MAP.get(char, char)
+    return result
+
+def pigpen_decrypt(text, key=''):
+    result = ""
+    i = 0
+    while i < len(text):
+        pair = text[i:i+2]
+        result += PIGPEN_INV_MAP.get(pair, '?')
+        i += 2
+    return result
+
+
 def encrypt(text, key, algorithm):
     algorithm = algorithm.lower().replace(' ', '')
     if algorithm == 'caesar':
@@ -255,6 +526,16 @@ def encrypt(text, key, algorithm):
         return railfence_encrypt(text, key)
     elif algorithm == 'hill':
         return hill_encrypt(text, key)
+    elif algorithm == 'playfair': 
+        return playfair_encrypt(text, key)
+    elif algorithm == 'columnar': 
+        return columnar_encrypt(text, key)
+    elif algorithm == 'route': 
+        return route_encrypt(text, key)
+    elif algorithm == 'pigpen': 
+        return pigpen_encrypt(text, key)
+    elif algorithm == 'polybius': 
+        return polybius_encrypt(text, key)
     else:
         return "Geçersiz algoritma seçimi!"
 
@@ -272,5 +553,15 @@ def decrypt(text, key, algorithm):
         return railfence_decrypt(text, key)
     elif algorithm == 'hill':
         return hill_decrypt(text, key)
+    elif algorithm == 'playfair': 
+        return playfair_decrypt(text, key)
+    elif algorithm == 'columnar': 
+        return columnar_decrypt(text, key)
+    elif algorithm == 'route': 
+        return route_decrypt(text, key)
+    elif algorithm == 'pigpen': 
+        return pigpen_decrypt(text, key)
+    elif algorithm == 'polybius': 
+        return polybius_decrypt(text, key)
     else:
         return "Geçersiz algoritma seçimi!"
