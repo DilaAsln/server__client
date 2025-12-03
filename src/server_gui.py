@@ -19,7 +19,7 @@ class ServerGUI(tk.Tk):
         self.server_socket = None
         self.thread_pool = ThreadPoolExecutor(max_workers=MAX_WORKERS)
         
-        self.algorithms = ["Caesar", "Vigenere", "Substitution", "Affine", "Railfence", "Hill","Playfair", "Columnar", "Route", "Pigpen", "Polybius"]
+        self.algorithms = ["Caesar", "Vigenere", "Substitution", "Affine", "Railfence", "Hill","Playfair", "Columnar", "Route", "Pigpen", "Polybius","DES","AES"]
 
         self._create_widgets()
         self.log("GUI Başlatıldı. Port: " + str(PORT))

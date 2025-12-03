@@ -105,6 +105,10 @@ function updateKeyPlaceholder() {
         case 'polybius':
             placeholderText = "Tablo boyutu (Örn: 55 veya 66)";
             break;
+        case 'aes':
+        case 'des':
+            placeholderText = "Anahtarınızı girin (Örn: SECRETKEY)";
+        break;
         default:
             placeholderText = "Anahtarınızı girin...";
             break;
@@ -639,6 +643,29 @@ function playfairDecrypt(text, key) {
     return result;
 }
 
+
+function aesEncrypt(text, key) {
+    return CryptoJS.AES.encrypt(text, key).toString();
+}
+
+
+function aesDecrypt(ciphertext, key) {
+    const bytes = CryptoJS.AES.decrypt(ciphertext, key);
+    return bytes.toString(CryptoJS.enc.Utf8);
+}
+
+
+function desEncrypt(text, key) {
+    return CryptoJS.DES.encrypt(text, key).toString();
+}
+
+
+function desDecrypt(ciphertext, key) {
+    const bytes = CryptoJS.DES.decrypt(ciphertext, key);
+    return bytes.toString(CryptoJS.enc.Utf8);
+}
+
+
 function encrypt(text, key, algorithm) {
     const alg = algorithm.toLowerCase();
     switch (alg) {
@@ -664,6 +691,10 @@ function encrypt(text, key, algorithm) {
             return pigpenEncrypt(text, key);
         case 'polybius':
             return polybiusEncrypt(text, key);
+        case 'aes':
+            return aesEncrypt(text, key);
+        case 'des':
+            return desEncrypt(text, key);
         default:
             throw new Error("Geçersiz algoritma seçimi!");
     }
@@ -694,6 +725,10 @@ function decrypt(text, key, algorithm) {
             return pigpenDecrypt(text, key);
         case 'polybius':
             return polybiusDecrypt(text, key);
+        case 'aes':
+            return aesDecrypt(text, key);
+        case 'des':
+            return desDecrypt(text, key);
         default:
             throw new Error("Geçersiz algoritma seçimi!");
     }

@@ -1,4 +1,7 @@
 import math
+from Crypto.Cipher import AES , DES
+from Crypto.Random import get_random_bytes
+import base64
 
 def mod_inverse(a, m):
     a = a % m
@@ -511,6 +514,65 @@ def pigpen_decrypt(text, key=''):
         i += 2
     return result
 
+key = get_random_bytes(16) 
+cipher = AES.new(key, AES.MODE_CBC)
+iv = cipher.iv
+
+def pad(data):
+    pad_len = AES.block_size - len(data) % AES.block_size
+    return data + bytes([pad_len]) * pad_len
+
+def unpad(data):
+    return data[:-data[-1]]
+
+
+def aes_encrypt(plaintext: str, key: bytes) -> str:
+    cipher = AES.new(key, AES.MODE_CBC)
+    iv = cipher.iv
+
+    ciphertext = cipher.encrypt(pad(plaintext.encode("utf-8")))
+    return base64.b64encode(iv + ciphertext).decode()
+    
+
+
+def aes_decrypt(ciphertext_b64: str, key: bytes) -> str:
+    raw = base64.b64decode(ciphertext_b64)
+    iv = raw[:16]
+    ciphertext = raw[16:]
+
+    cipher = AES.new(key, AES.MODE_CBC, iv)
+    plaintext = unpad(cipher.decrypt(ciphertext))
+    return plaintext.decode("utf-8")
+
+
+def pad_des(data):
+    pad_len = DES.block_size - len(data) % DES.block_size
+    return data + bytes([pad_len]) * pad_len
+
+def unpad_des(data):
+    return data[:-data[-1]]
+
+
+def des_encrypt(plaintext: str, key: bytes) -> str:
+    cipher = DES.new(key, DES.MODE_CBC)
+    iv = cipher.iv
+
+    ciphertext = cipher.encrypt(pad_des(plaintext.encode("utf-8")))
+    return base64.b64encode(iv + ciphertext).decode()
+
+
+
+def des_decrypt(ciphertext_b64: str, key: bytes) -> str:
+    raw = base64.b64decode(ciphertext_b64)
+    iv = raw[:8]
+    ciphertext = raw[8:]
+
+    cipher = DES.new(key, DES.MODE_CBC, iv)
+    plaintext = unpad_des(cipher.decrypt(ciphertext))
+    return plaintext.decode("utf-8")
+
+
+
 
 def encrypt(text, key, algorithm):
     algorithm = algorithm.lower().replace(' ', '')
@@ -536,6 +598,10 @@ def encrypt(text, key, algorithm):
         return pigpen_encrypt(text, key)
     elif algorithm == 'polybius': 
         return polybius_encrypt(text, key)
+    elif algorithm == "aes":
+        return aes_encrypt(text, key)
+    elif algorithm == "des":
+        return des_encrypt(text, key)
     else:
         return "Geçersiz algoritma seçimi!"
 
@@ -563,5 +629,9 @@ def decrypt(text, key, algorithm):
         return pigpen_decrypt(text, key)
     elif algorithm == 'polybius': 
         return polybius_decrypt(text, key)
+    elif algorithm == "aes":
+        return aes_encrypt(text, key)
+    elif algorithm == "des":
+        return des_encrypt(text, key)
     else:
         return "Geçersiz algoritma seçimi!"

@@ -13,7 +13,7 @@ class ClientGUI(tk.Tk):
         self.title("Şifreleme Client GUI")
         self.geometry("700x500")
         
-        self.algorithms = ["Caesar", "Vigenere", "Substitution", "Affine", "Railfence", "Hill","Playfair", "Columnar", "Route", "Pigpen", "Polybius"]
+        self.algorithms = ["Caesar", "Vigenere", "Substitution", "Affine", "Railfence", "Hill","Playfair", "Columnar", "Route", "Pigpen", "Polybius","DES","AES"]
 
         self._create_widgets()
         self.log("=== GUI Başlatıldı ===")
@@ -112,9 +112,9 @@ class ClientGUI(tk.Tk):
                 self.log(f"← Sunucu Yanıtı: {response}")
 
         except ConnectionRefusedError:
-            self.log("❌ HATA: Sunucuya bağlanılamadı. Server çalışıyor mu?")
+            self.log("HATA: Sunucuya bağlanılamadı. Server çalışıyor mu?")
         except Exception as e:
-            self.log(f"❌ HATA: Mesaj gönderilemedi: {e}")
+            self.log(f"HATA: Mesaj gönderilemedi: {e}")
 
 
 if __name__ == '__main__':
