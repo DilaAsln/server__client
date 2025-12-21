@@ -21,9 +21,8 @@ body {
 h1 {
   text-align: center;
   margin-top: 0;
-  color: #1a73e8; 
+  color: #1a73e8;
 }
-
 
 .tab-header {
     display: flex;
@@ -46,13 +45,12 @@ h1 {
 }
 
 .tab-button.active {
-    background-color: #1a73e8; 
+    background-color: #1a73e8;
     color: white;
 }
 .tab-button[data-tab="server"].active {
-    background-color: #34a853; 
+    background-color: #34a853;
 }
-
 
 .tab-content {
     display: none;
@@ -60,7 +58,6 @@ h1 {
 .tab-content.active {
     display: block;
 }
-
 
 .form-section {
   display: grid;
@@ -83,10 +80,12 @@ input, select, textarea {
   box-sizing: border-box;
   transition: border-color 0.2s;
 }
+
 textarea {
     resize: vertical;
     grid-column: 2 / 3;
 }
+
 label[for="server-message"] {
     grid-column: 1 / 2;
 }
@@ -95,7 +94,6 @@ input:focus, select:focus, textarea:focus {
   border-color: #1a73e8;
   outline: none;
 }
-
 
 .button-group {
   display: flex;
@@ -115,19 +113,18 @@ input:focus, select:focus, textarea:focus {
   font-weight: 600;
 }
 
-.btn-primary { 
+.btn-primary {
   background-color: #1a73e8;
 }
-.btn-secondary { 
+.btn-secondary {
     background-color: #555;
 }
-.btn-success { 
+.btn-success {
   background-color: #34a853;
 }
-.btn-danger { 
+.btn-danger {
   background-color: #ea4335;
 }
-
 
 .log-section {
   margin-top: 30px;

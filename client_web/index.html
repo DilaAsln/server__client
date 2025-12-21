@@ -24,27 +24,35 @@
             <label for="client-key">Anahtar:</label>
             <input type="text" id="client-key" placeholder="Anahtarınızı girin (Örn: 3 veya 5,8,17,3)" />
 
-            <label for="client-algorithm">Algoritma Seç:</label>
-            <select id="client-algorithm">
-                <option value="caesar">Caesar</option>
-                <option value="vigenere">Vigenere</option>
-                <option value="substitution">Substitution</option>
-                <option value="affine">Affine</option>
-                <option value="railfence">Railfence</option>
-                <option value="hill">Hill</option>
-                <option value="playfair">Playfair</option>
-                <option value="columnar">Columnar</option>
-                <option value="route">Route</option>
-                <option value="pigpen">Pigpen</option>
-                <option value="polybius">Polybius</option>
-                <option value="aes">AES</option>
-                <option value="des">DES</option>
-            </select>
+            <label for="client-pubkey">RSA Public Key (PEM):</label>
+            <textarea id="client-pubkey" rows="6" placeholder="-----BEGIN PUBLIC KEY-----&#10;...&#10;-----END PUBLIC KEY-----"></textarea>
+            
+            <div>
+                <label for="client-algorithm">Algoritma Seç:</label>
+                <select id="client-algorithm">
+                    <option value="caesar">Caesar</option>
+                    <option value="vigenere">Vigenere</option>
+                    <option value="substitution">Substitution</option>
+                    <option value="affine">Affine</option>
+                    <option value="railfence">Railfence</option>
+                    <option value="hill">Hill</option>
+                    <option value="playfair">Playfair</option>
+                    <option value="columnar">Columnar</option>
+                    <option value="route">Route</option>
+                    <option value="pigpen">Pigpen</option>
+                    <option value="polybius">Polybius</option>
+                    <option value="aes">AES</option>
+                    <option value="des">DES</option>
+                    <option value="aes_rsa">AES_RSA</option>
+                </select>
+            </div>
+            
         </div>
 
         <div class="button-group">
             <button id="encryptBtn" class="btn btn-primary">Şifrele ve Gönder</button>
             <button id="clientDecryptBtn" class="btn btn-secondary">Deşifrele (Lokal)</button>
+            <button id="clearBtn" class="btn btn-danger">Temizle</button>
         </div>
     </div>
 
@@ -57,7 +65,6 @@
 
             <label for="server-key">Anahtar:</label>
             <input type="text" id="server-key" placeholder="Anahtar" />
-
 
             <label for="server-algorithm">Algoritma Seç:</label>
             <select id="server-algorithm">
@@ -74,6 +81,7 @@
                 <option value="polybius">Polybius</option>
                 <option value="aes">AES</option>
                 <option value="des">DES</option>
+                <option value="aes_rsa">AES_RSA</option>
             </select>
         </div>
 

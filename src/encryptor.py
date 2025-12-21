@@ -1,7 +1,11 @@
 import math
-from Crypto.Cipher import AES , DES
+from Crypto.Cipher import AES , DES , PKCS1_OAEP
 from Crypto.Random import get_random_bytes
 import base64
+from Crypto.PublicKey import RSA
+from aes_manual import aes_manual_encrypt, aes_manual_decrypt
+from des_manual import des_manual_encrypt, des_manual_decrypt
+import rsa
 
 def mod_inverse(a, m):
     a = a % m
@@ -317,56 +321,58 @@ def playfair_decrypt(text, key):
     return result
 
 def columnar_encrypt(text, key):
-    key = key.upper().replace(' ', '')
-    text = "".join(filter(str.isalpha, text)).upper()
-    key_order = sorted(range(len(key)), key=lambda k: key[k])
+    key = key.upper().replace(' ', '')  
+    text = "".join(filter(str.isalpha, text)).upper()  
+
+    key_order = sorted(range(len(key)), key=lambda k: key[k])  
     
-    num_cols = len(key)
-    num_rows = math.ceil(len(text) / num_cols)
-    
-    cipher_matrix = [''] * num_cols
-    
+    num_cols = len(key)  
+    num_rows = math.ceil(len(text) / num_cols)  
+
+    cipher_matrix = [''] * num_cols  
+
     for i, char in enumerate(text):
-        col = i % num_cols
-        cipher_matrix[col] += char
+        col = i % num_cols  
+        cipher_matrix[col] += char 
         
     result = ""
-    for index in key_order:
+    for index in key_order:  
         result += cipher_matrix[index]
         
     return result
 
+
 def columnar_decrypt(text, key):
     key = key.upper().replace(' ', '')
     text = "".join(filter(str.isalpha, text)).upper()
+
     key_order = sorted(range(len(key)), key=lambda k: key[k])
-    
+
     num_cols = len(key)
     len_text = len(text)
     num_rows = math.ceil(len_text / num_cols)
-    
-    col_lengths = [num_rows] * num_cols
-    len_full_cols = len_text % num_cols
-    
-    if len_full_cols != 0:
-        for i in range(num_cols):
-            if i >= len_full_cols:
-                col_lengths[key_order[i]] -= 1
 
-    cipher_parts = [None] * num_cols
+    col_lengths = [len_text // num_cols] * num_cols
+    extra = len_text % num_cols
+
+    for i in range(extra):
+        col_lengths[i] += 1
+
+    cipher_parts = [''] * num_cols
     current_index = 0
-    
-    for i, col_index in enumerate(key_order):
+
+    for i in range(num_cols):
+        col_index = key_order[i]
         length = col_lengths[col_index]
         cipher_parts[col_index] = text[current_index:current_index + length]
         current_index += length
-        
+
     result = ""
     for r in range(num_rows):
         for c in range(num_cols):
             if r < len(cipher_parts[c]):
                 result += cipher_parts[c][r]
-                
+
     return result
 
 
@@ -492,89 +498,131 @@ def polybius_decrypt(text, key='25'):
 
 
 PIGPEN_MAP = {
-    'A': '11', 'B': '12', 'C': '13', 'D': '21', 'E': '22', 'F': '23', 'G': '31', 'H': '32', 'I': '33', 
-    'J': '41', 'K': '42', 'L': '43', 'M': '51', 'N': '52', 'O': '53', 'P': '61', 'Q': '62', 'R': '63',
-    'S': '71', 'T': '72', 'U': '73', 'V': '81', 'W': '82', 'X': '83', 'Y': '91', 'Z': '92'
+    'A': '⍝', 'B': '⎯', 'C': '⊥', 'D': '≡', 'E': '⊖', 'F': '⊗', 'G': '⎬', 'H': '⎮', 'I': '☍',
+    'J': '⧗', 'K': '⧘', 'L': '⧙', 'M': '⧚', 'N': '⧝', 'O': '⧞', 'P': '⧟', 'Q': '⧰',
+    'R': '⧱', 'S': '⧲', 'T': '⧳', 'U': '⧴', 'V': '⧵', 'W': '⧶', 'X': '⧷', 'Y': '⧸', 'Z': '⧺'
 }
-PIGPEN_INV_MAP = {v: k for k, v in PIGPEN_MAP.items()}
 
-def pigpen_encrypt(text, key=''):
+PIGPEN_INV_MAP = {
+    '⍝': 'A', '⎯': 'B', '⊥': 'C', '≡': 'D', '⊖': 'E', '⊗': 'F', '⎬': 'G', '⎮': 'H', '☍': 'I',
+    '⧗': 'J', '⧘': 'K', '⧙': 'L', '⧚': 'M', '⧝': 'N', '⧞': 'O', '⧟': 'P', '⧰': 'Q',
+    '⧱': 'R', '⧲': 'S', '⧳': 'T', '⧴': 'U', '⧵': 'V', '⧶': 'W', '⧷': 'X', '⧸': 'Y', '⧺': 'Z'
+}
+
+def pigpen_encrypt(text):
     text = "".join(filter(str.isalpha, text)).upper()
     result = ""
     for char in text:
-        result += PIGPEN_MAP.get(char, char)
+        result += PIGPEN_MAP.get(char, char)  
     return result
 
-def pigpen_decrypt(text, key=''):
+def pigpen_decrypt(text):
     result = ""
     i = 0
     while i < len(text):
         pair = text[i:i+2]
-        result += PIGPEN_INV_MAP.get(pair, '?')
+        result += PIGPEN_INV_MAP.get(pair, '?')  
         i += 2
     return result
 
-key = get_random_bytes(16) 
-cipher = AES.new(key, AES.MODE_CBC)
-iv = cipher.iv
 
-def pad(data):
-    pad_len = AES.block_size - len(data) % AES.block_size
+
+def _normalize_key_bytes(key, size: int) -> bytes:
+    
+    if isinstance(key, str):
+        keyb = key.encode("utf-8")
+    elif isinstance(key, (bytes, bytearray)):
+        keyb = bytes(key)
+    else:
+        raise TypeError("Anahtar tipi desteklenmiyor (str/bytes olmalı)")
+
+    if len(keyb) < size:
+        keyb = keyb + bytes(size - len(keyb))
+    elif len(keyb) > size:
+        keyb = keyb[:size]
+    return keyb
+
+
+def _pkcs7_pad(data: bytes, block_size: int) -> bytes:
+    pad_len = block_size - (len(data) % block_size)
     return data + bytes([pad_len]) * pad_len
 
-def unpad(data):
-    return data[:-data[-1]]
+
+def _pkcs7_unpad(data: bytes, block_size: int) -> bytes:
+    if not data:
+        raise ValueError("Padding hatası")
+    pad_len = data[-1]
+    if pad_len < 1 or pad_len > block_size:
+        raise ValueError("Padding hatası")
+    if data[-pad_len:] != bytes([pad_len]) * pad_len:
+        raise ValueError("Padding hatası")
+    return data[:-pad_len]
 
 
-def aes_encrypt(plaintext: str, key: bytes) -> str:
+def aes_encrypt(plaintext: str, key) -> str:
+   
+    key = _normalize_key_bytes(key, 16)
     cipher = AES.new(key, AES.MODE_CBC)
     iv = cipher.iv
+    pt = _pkcs7_pad(plaintext.encode("utf-8"), AES.block_size)
+    ct = cipher.encrypt(pt)
+    return base64.b64encode(iv + ct).decode("utf-8")
 
-    ciphertext = cipher.encrypt(pad(plaintext.encode("utf-8")))
-    return base64.b64encode(iv + ciphertext).decode()
-    
 
-
-def aes_decrypt(ciphertext_b64: str, key: bytes) -> str:
+def aes_decrypt(ciphertext_b64: str, key) -> str:
+   
+    key = _normalize_key_bytes(key, 16)
     raw = base64.b64decode(ciphertext_b64)
+    if len(raw) < 16:
+        raise ValueError("Geçersiz AES ciphertext")
     iv = raw[:16]
-    ciphertext = raw[16:]
-
+    ct = raw[16:]
+    if len(ct) % 16 != 0:
+        raise ValueError("Geçersiz AES ciphertext")
     cipher = AES.new(key, AES.MODE_CBC, iv)
-    plaintext = unpad(cipher.decrypt(ciphertext))
-    return plaintext.decode("utf-8")
+    pt = cipher.decrypt(ct)
+    pt = _pkcs7_unpad(pt, AES.block_size)
+    return pt.decode("utf-8")
 
 
-def pad_des(data):
-    pad_len = DES.block_size - len(data) % DES.block_size
-    return data + bytes([pad_len]) * pad_len
-
-def unpad_des(data):
-    return data[:-data[-1]]
-
-
-def des_encrypt(plaintext: str, key: bytes) -> str:
+def des_encrypt(plaintext: str, key) -> str:
+   
+    key = _normalize_key_bytes(key, 8)
     cipher = DES.new(key, DES.MODE_CBC)
     iv = cipher.iv
+    pt = _pkcs7_pad(plaintext.encode("utf-8"), DES.block_size)
+    ct = cipher.encrypt(pt)
+    return base64.b64encode(iv + ct).decode("utf-8")
 
-    ciphertext = cipher.encrypt(pad_des(plaintext.encode("utf-8")))
-    return base64.b64encode(iv + ciphertext).decode()
 
-
-
-def des_decrypt(ciphertext_b64: str, key: bytes) -> str:
+def des_decrypt(ciphertext_b64: str, key) -> str:
+   
+    key = _normalize_key_bytes(key, 8)
     raw = base64.b64decode(ciphertext_b64)
+    if len(raw) < 8:
+        raise ValueError("Geçersiz DES ciphertext")
     iv = raw[:8]
-    ciphertext = raw[8:]
-
+    ct = raw[8:]
+    if len(ct) % 8 != 0:
+        raise ValueError("Geçersiz DES ciphertext")
     cipher = DES.new(key, DES.MODE_CBC, iv)
-    plaintext = unpad_des(cipher.decrypt(ciphertext))
-    return plaintext.decode("utf-8")
+    pt = cipher.decrypt(ct)
+    pt = _pkcs7_unpad(pt, DES.block_size)
+    return pt.decode("utf-8")
 
+def rsa_encrypt_bytes(data: bytes, public_pem: bytes) -> str:
+    pub = RSA.import_key(public_pem)  
+    cipher = PKCS1_OAEP.new(pub)  
+    ct = cipher.encrypt(data)  
+    return base64.b64encode(ct).decode("utf-8")
 
+def rsa_decrypt_bytes(ciphertext_b64: str, private_pem: bytes) -> bytes:
+    priv = RSA.import_key(private_pem)  
+    cipher = PKCS1_OAEP.new(priv)  
+    ct = base64.b64decode(ciphertext_b64)  
+    return cipher.decrypt(ct)
 
-
-def encrypt(text, key, algorithm):
+def encrypt(text, key, algorithm, public_key=None):
     algorithm = algorithm.lower().replace(' ', '')
     if algorithm == 'caesar':
         return caesar_encrypt(text, key)
@@ -598,14 +646,26 @@ def encrypt(text, key, algorithm):
         return pigpen_encrypt(text, key)
     elif algorithm == 'polybius': 
         return polybius_encrypt(text, key)
+    elif algorithm == 'aes_rsa':
+        if public_key is None:
+            raise ValueError("Public key gereklidir!")
+        session_key = get_random_bytes(16)  
+        rsa_enc_key = rsa_encrypt_bytes(session_key, public_key)  
+        aes_cipher = aes_encrypt(text, session_key)  
+        return aes_cipher, rsa_enc_key 
     elif algorithm == "aes":
         return aes_encrypt(text, key)
     elif algorithm == "des":
         return des_encrypt(text, key)
+    elif algorithm == "aes_manual":
+        return aes_manual_encrypt(text, key)
+    elif algorithm == "des_manual":
+        return des_manual_encrypt(text, key)
     else:
         return "Geçersiz algoritma seçimi!"
 
-def decrypt(text, key, algorithm):
+
+def decrypt(text, key, algorithm, private_key=None):
     algorithm = algorithm.lower().replace(' ', '')
     if algorithm == 'caesar':
         return caesar_decrypt(text, key)
@@ -629,9 +689,19 @@ def decrypt(text, key, algorithm):
         return pigpen_decrypt(text, key)
     elif algorithm == 'polybius': 
         return polybius_decrypt(text, key)
+    elif algorithm == 'aes_rsa':
+        if private_key is None:
+            raise ValueError("Private key gereklidir!") 
+        session_key = rsa_decrypt_bytes(key, private_key)  
+        decrypted_text = aes_decrypt(text, session_key) 
+        return decrypted_text
     elif algorithm == "aes":
-        return aes_encrypt(text, key)
+        return aes_decrypt(text, key)
     elif algorithm == "des":
-        return des_encrypt(text, key)
+        return des_decrypt(text, key)
+    elif algorithm == "aes_manual":
+        return aes_manual_decrypt(text, key)
+    elif algorithm == "des_manual":
+        return des_manual_decrypt(text, key)
     else:
         return "Geçersiz algoritma seçimi!"
