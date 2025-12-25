@@ -3,12 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <title>Şifreleme Uygulaması (Client/Server)</title>
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
 </head>
 <body>
   <div class="container">
-    
     <header class="tab-header">
         <button class="tab-button active" data-tab="client">İstemci (Şifreleme)</button>
         <button class="tab-button" data-tab="server">Sunucu (Deşifreleme)</button>
@@ -24,29 +23,24 @@
             <label for="client-key">Anahtar:</label>
             <input type="text" id="client-key" placeholder="Anahtarınızı girin (Örn: 3 veya 5,8,17,3)" />
 
-            <label for="client-pubkey">RSA Public Key (PEM):</label>
-            <textarea id="client-pubkey" rows="6" placeholder="-----BEGIN PUBLIC KEY-----&#10;...&#10;-----END PUBLIC KEY-----"></textarea>
-            
-            <div>
-                <label for="client-algorithm">Algoritma Seç:</label>
-                <select id="client-algorithm">
-                    <option value="caesar">Caesar</option>
-                    <option value="vigenere">Vigenere</option>
-                    <option value="substitution">Substitution</option>
-                    <option value="affine">Affine</option>
-                    <option value="railfence">Railfence</option>
-                    <option value="hill">Hill</option>
-                    <option value="playfair">Playfair</option>
-                    <option value="columnar">Columnar</option>
-                    <option value="route">Route</option>
-                    <option value="pigpen">Pigpen</option>
-                    <option value="polybius">Polybius</option>
-                    <option value="aes">AES</option>
-                    <option value="des">DES</option>
-                    <option value="aes_rsa">AES_RSA</option>
-                </select>
-            </div>
-            
+            <label for="client-algorithm">Algoritma Seç:</label>
+            <select id="client-algorithm">
+                <option value="caesar">Caesar</option>
+                <option value="vigenere">Vigenere</option>
+                <option value="substitution">Substitution</option>
+                <option value="affine">Affine</option>
+                <option value="railfence">Railfence</option>
+                <option value="hill">Hill</option>
+                <option value="playfair">Playfair</option>
+                <option value="columnar">Columnar</option>
+                <option value="route">Route</option>
+                <option value="pigpen">Pigpen</option>
+                <option value="polybius">Polybius</option>
+                <option value="aes">AES</option>
+                <option value="des">DES</option>
+                <option value="aes_lib">AES_lib</option>
+                <option value="des_lib">DES_lib</option>
+            </select>
         </div>
 
         <div class="button-group">
@@ -81,7 +75,8 @@
                 <option value="polybius">Polybius</option>
                 <option value="aes">AES</option>
                 <option value="des">DES</option>
-                <option value="aes_rsa">AES_RSA</option>
+                <option value="aes_lib">AES_lib</option>
+                <option value="des_lib">DES_lib</option>
             </select>
         </div>
 
@@ -98,6 +93,6 @@
 
   </div>
 
-  <script src="script.js"></script>
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html>

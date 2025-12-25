@@ -1,147 +1,75 @@
 import tkinter as tk
 from tkinter import ttk, scrolledtext
-import socket
-import threading
+import socket, threading, os
 from concurrent.futures import ThreadPoolExecutor
 import encryptor as enc
-from Crypto.PublicKey import RSA
+from AES_lib import aes_decrypt
 
-HOST = '0.0.0.0'  
-PORT = 50000 
-MAX_WORKERS = 10  
+HOST = "0.0.0.0"
+PORT = 50000
+MAX_WORKERS = 5
+
+RSA_DIR = "src/rsa_keys"
+PRIVATE_KEY = os.path.join(RSA_DIR, "private.pem")
+PUBLIC_KEY = os.path.join(RSA_DIR, "public.pem")
 
 class ServerGUI(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("Şifreleme Server GUI")
+        self.title("Server")
         self.geometry("600x400")
 
+        self.private_pem = open(PRIVATE_KEY, "rb").read()
+        self.public_pem = open(PUBLIC_KEY, "rb").read()
+
+        self.executor = ThreadPoolExecutor(MAX_WORKERS)
         self.running = False
-        self.server_socket = None
-        self.thread_pool = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 
-        self.algorithms = ["Caesar", "Vigenere", "Substitution", "Affine", "Railfence", "Hill", "Playfair",
-                           "Columnar", "Route", "Pigpen", "Polybius", "DES", "AES", "AES_RSA"]
+        self.logbox = scrolledtext.ScrolledText(self)
+        self.logbox.pack(fill="both", expand=True)
 
-        self.rsa_private_pem, self.rsa_public_pem = self.load_keys()
-        if not self.rsa_public_pem:
-            self.rsa_private_pem, self.rsa_public_pem = enc.rsa_generate_keypair(2048)  
-
-        self._create_widgets()
-        self.log("GUI Başlatıldı. Port: " + str(PORT))
-        self.log("RSA anahtar çifti üretildi. Client artık public key'i otomatik alacak.")
-
-    def _create_widgets(self):
-        main_frame = ttk.Frame(self, padding="10")
-        main_frame.pack(fill='both', expand=True)
-
-        ttk.Label(main_frame, text="Sunucu Logları:", font=("Arial", 12)).pack(anchor='w', pady=(5, 5))
-        self.log_text = scrolledtext.ScrolledText(main_frame, height=15, font=("Monospaced", 10))
-        self.log_text.pack(fill='both', expand=True)
-
-        self.start_stop_button = ttk.Button(main_frame, text="Server'ı Başlat", command=self.toggle_server)
-        self.start_stop_button.pack(fill='x', pady=10)
+        ttk.Button(self, text="Server Başlat", command=self.start).pack()
 
     def log(self, msg):
-        self.log_text.insert(tk.END, msg + "\n")
-        self.log_text.see(tk.END)
-        self.update_idletasks()
+        self.logbox.insert(tk.END, msg + "\n")
+        self.logbox.see(tk.END)
 
-    def toggle_server(self):
-        if not self.running:
-            threading.Thread(target=self._start_server_thread).start()
-        else:
-            self._stop_server()
+    def start(self):
+        threading.Thread(target=self.run, daemon=True).start()
 
-    def _start_server_thread(self):
+    def run(self):
         self.running = True
-        self.start_stop_button.config(text="Server Durduruluyor...", state=tk.DISABLED)
-
-        try:
-            self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.server_socket.bind((HOST, PORT))
-            self.server_socket.listen()
-            self.log(f"[SERVER] Başlatıldı. Port {PORT} dinleniyor...")
-
-            self.start_stop_button.config(text="Server'ı Durdur", state=tk.NORMAL)
-
+        with socket.socket() as s:
+            s.bind((HOST, PORT))
+            s.listen()
+            self.log("Server dinleniyor...")
             while self.running:
-                conn, addr = self.server_socket.accept()
-                self.log(f"[SERVER] Bağlantı kabul edildi: {addr}")
-                self.thread_pool.submit(self.handle_client, conn, addr)
+                conn, addr = s.accept()
+                self.executor.submit(self.handle, conn)
 
-        except Exception as e:
-            if self.running:
-                self.log(f"HATA: Sunucu başlatılamadı veya soket hatası: {e}")
-            self.running = False
-            self.start_stop_button.config(text="Server'ı Başlat", state=tk.NORMAL)
-
-    def _stop_server(self):
-        self.running = False
-        self.log("[SERVER] Durduruluyor...")
-
-        if self.server_socket:
-            try:
-                self.server_socket.close()
-            except Exception:
-                pass
-
-        self.thread_pool.shutdown(wait=False)
-        self.start_stop_button.config(text="Server'ı Başlat", state=tk.NORMAL)
-
-    def handle_client(self, conn, addr):
+    def handle(self, conn):
         try:
-            data = conn.recv(8192).decode('utf-8', errors='ignore').strip()
-            self.log(f"[SERVER] Gelen veri: {data[:200]}{'...' if len(data) > 200 else ''}")
-
+            data = conn.recv(8192).decode()
             if data == "GET_PUBKEY":
-                conn.sendall(self.rsa_public_pem)
-                self.log("[SERVER] Public key gönderildi.")
+                conn.sendall(self.public_pem)
                 return
 
-            response = "Bilinmeyen komut formatı."
+            _, _, enc_key_hex, enc_msg_hex = data.split(":", 3)
 
-            if data.startswith("METHOD:"):
-                try:
-                    parts = data.split(":", 3)
-                    if len(parts) == 4:
-                        method_full = parts[1].lower()
-                        key = parts[2]
-                        encrypted_text = parts[3]
+            session_key = enc.rsa_decrypt_bytes(
+                bytes.fromhex(enc_key_hex),
+                self.private_pem
+            )
 
-                        if method_full == "aes_rsa":
-                            session_key = enc.rsa_decrypt_bytes(key, self.rsa_private_pem)
-                            decrypted = enc.aes_decrypt(encrypted_text, session_key)
-                        elif method_full == "columnar":
-                            decrypted = enc.columnar_decrypt(encrypted_text, key)  # Columnar deşifreleme işlemi
-
-                        response = f"Sunucu deşifre etti ({method_full.upper()}): {decrypted}"
-
-                except Exception as e:
-                    response = f"Deşifre hatası: {e}"
-
-            self.log(f"[SERVER] Yanıt Gönderiliyor: {response[:300]}{'...' if len(response) > 300 else ''}")
-            conn.sendall(response.encode('utf-8'))
+            plaintext = aes_decrypt(bytes.fromhex(enc_msg_hex), session_key)
+            response = f"Çözüldü: {plaintext}"
+            self.log(response)
+            conn.sendall(response.encode())
 
         except Exception as e:
-            self.log(f"⚠ Bağlantı kapandı veya hata oluştu: {addr}. Hata: {e}")
+            self.log(f"Hata: {e}")
         finally:
-            try:
-                conn.close()
-            except Exception:
-                pass
+            conn.close()
 
-
-    def load_keys(self):
-        try:
-            with open("public.pem", "rb") as pub_file:
-                public_key = pub_file.read()
-            with open("private.pem", "rb") as priv_file:
-                private_key = priv_file.read()
-            return private_key, public_key
-        except FileNotFoundError:
-            return None, None
-
-if __name__ == '__main__':
-    app = ServerGUI()
-    app.mainloop()
+if __name__ == "__main__":
+    ServerGUI().mainloop()
