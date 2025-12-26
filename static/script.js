@@ -268,3 +268,80 @@ function clearFields() {
 }
 
 document.getElementById("clearBtn").addEventListener("click", clearFields);
+
+
+
+async function encryptFile() {
+  const file = document.getElementById("fileInput").files[0];
+  const password = document.getElementById("filePassword").value;
+  const algorithm = document.getElementById("fileAlgorithm").value;
+
+  if (!file || !password) {
+    log("HATA: Dosya ve parola zorunlu!");
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("password", password);
+  formData.append("algorithm", algorithm);
+
+  log("--- DOSYA ŞİFRELEME BAŞLADI ---");
+
+  const response = await fetch("http://127.0.0.1:5000/api/file/encrypt", {
+    method: "POST",
+    body: formData
+  });
+
+  if (response.ok) {
+    const blob = await response.blob();
+    downloadBlob(blob, file.name + ".enc");
+    log("✓ Dosya şifrelendi ve indirildi");
+  } else {
+    log("HATA: Dosya şifreleme başarısız");
+  }
+}
+
+async function decryptFile() {
+  const file = document.getElementById("fileInput").files[0];
+  const password = document.getElementById("filePassword").value;
+  const algorithm = document.getElementById("fileAlgorithm").value;
+
+  if (!file || !password) {
+    log("HATA: Dosya ve parola zorunlu!");
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("password", password);
+  formData.append("algorithm", algorithm);
+
+  log("--- DOSYA DEŞİFRELEME BAŞLADI ---");
+
+  const response = await fetch("http://127.0.0.1:5000/api/file/decrypt", {
+    method: "POST",
+    body: formData
+  });
+
+  if (response.ok) {
+    const blob = await response.blob();
+    downloadBlob(blob, file.name.replace(".enc", ""));
+    log("✓ Dosya deşifrelendi ve indirildi");
+  } else {
+    log("HATA: Dosya deşifreleme başarısız");
+  }
+}
+
+function downloadBlob(blob, filename) {
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.URL.revokeObjectURL(url);
+}
+
+

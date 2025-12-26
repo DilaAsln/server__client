@@ -1,9 +1,9 @@
 from flask import Flask, render_template, request, jsonify
 from src.encryptor import encrypt, decrypt
-
+from routes.file_routes import file_bp
 
 app = Flask(__name__)
-
+app.register_blueprint(file_bp) 
 
 @app.route('/')
 def home():
