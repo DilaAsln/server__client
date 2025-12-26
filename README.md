@@ -115,7 +115,7 @@ server__client/
 │ ├── file_crypto.py # Dosya şifreleme yardımcıları
 │ ├── file_algorithms/ # Dosya bazlı AES/DES
 │ ├── client_gui.py # İstemci arayüzü
-│ └── server_gui.py # Sunucu arayüzü (varsa)
+│ └── server_gui.py # Sunucu arayüzü 
 │
 ├── templates/
 │ └── index.html # Web arayüzü
