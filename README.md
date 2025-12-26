@@ -98,30 +98,32 @@ Projede hem **klasik şifreler** (Caesar, Vigenère vb.) hem de **modern şifrel
 
 ## 🏗️ Proje Yapısı
 
-server__client/
-│
-├── app.py # Sunucu uygulaması (ana giriş)
+server_client/
+├── app.py                     # Sunucu uygulaması (ana giriş noktası)
 ├── routes/
-│ └── file_routes.py # Dosya şifreleme/deşifreleme endpointleri
+│   └── file_routes.py         # Dosya şifreleme / deşifreleme endpointleri
 │
 ├── src/
-│ ├── encryptor.py # Metin algoritmalarını yöneten merkez katman
-│ ├── aes_manual.py # AES manuel şifreleme/deşifreleme
-│ ├── des_manual.py # DES manuel şifreleme/deşifreleme
-│ ├── AES_lib.py # AES kütüphaneli şifreleme/deşifreleme
-│ ├── DES_lib.py # DES kütüphaneli şifreleme/deşifreleme
-│ ├── rsa.py # RSA işlemleri
-│ ├── rsa_keys/ # RSA public/private key dosyaları
-│ ├── file_crypto.py # Dosya şifreleme yardımcıları
-│ ├── file_algorithms/ # Dosya bazlı AES/DES
-│ ├── client_gui.py # İstemci arayüzü
-│ └── server_gui.py # Sunucu arayüzü 
+│   ├── encryptor.py           # Metin algoritmalarını yöneten merkez katman
+│   ├── aes_manual.py          # AES manuel şifreleme / deşifreleme
+│   ├── des_manual.py          # DES manuel şifreleme / deşifreleme
+│   ├── AES_lib.py             # AES kütüphane tabanlı şifreleme
+│   ├── DES_lib.py             # DES kütüphane tabanlı şifreleme
+│   ├── rsa.py                 # RSA işlemleri
+│   ├── rsa_keys/              # RSA public / private key dosyaları
+│   ├── file_crypto.py         # Dosya şifreleme yardımcı fonksiyonları
+│   └── file_algorithms/       # Dosya bazlı AES / DES algoritmaları
+│
+├── client_gui.py              # İstemci (client) arayüzü
+├── server_gui.py              # Sunucu arayüzü (opsiyonel)
 │
 ├── templates/
-│ └── index.html # Web arayüzü
+│   └── index.html             # Web arayüzü
+│
 └── static/
-├── script.js
-└── style.css
+    ├── script.js              # Frontend JavaScript
+    └── style.css              # Stil dosyası
+
 
 ---
 
