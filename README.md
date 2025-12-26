@@ -100,6 +100,7 @@ Projede hem **klasik şifreler** (Caesar, Vigenère vb.) hem de **modern şifrel
 
 server_client/
 ├── app.py                     # Sunucu uygulaması (ana giriş noktası)
+│
 ├── routes/
 │   └── file_routes.py         # Dosya şifreleme / deşifreleme endpointleri
 │
